@@ -33,26 +33,37 @@ def my_handler(proc, image, closure):
 
         # prints and validates the data 
         #print "QR Code: %s" % qrCodeAsJSON
-        print "Usuario da compra (QR Code): %s" % qrCodeAsJSON["usuario"]
+        print "Usuario da compra (QR Code): %s" % qrCodeAsJSON["usuario__id"]
         print "Data de compra (QR Code): %s" % qrCodeAsJSON["data_compra"]
         print "--------------------"
 
         # checks with the data from compra's API
 
         id = 20
-        responseFromAPI = requests.get("https://pi2-api.herokuapp.com/compra/%s" % id)
+        data = qrCodeAsJSON["data_compra"]
+        user = qrCodeAsJSON["usuario__id"]
+        responseFromAPI = requests.get("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user))
 
-        apiDataAsJson = responseFromAPI.json()
+        print responseFromAPI.content
+        result  = json.loads(responseFromAPI.content)
+        print result[0]
 
-        print "Usuario da compra (API): %s" % apiDataAsJson["usuario"]
-        print "Data de compra (API): %s" % apiDataAsJson["data_compra"]
-        print "Is valid? (API): " + str(apiDataAsJson["qr_code"]["is_valid"])
+        if (result[0]["is_valid"] == True):
+            print ("QR Code Valido!")
+            print (result[0]["is_valid"])
+        else:
+            print ("QR Code Invalido!")
+            print (result[0]["is_valid"])
+
+        print "Usuario da compra (API): %s" % result[0]["usuario"]
+        print "Data de compra (API): %s" % result["data_compra"]
+        print "Is valid? (API): " + str(result["qr_code"]["is_valid"])
         print "--------------------"
 
-        if (qrCodeAsJSON["data_compra"] == apiDataAsJson["data_compra"]) and (qrCodeAsJSON["usuario"] == apiDataAsJson["usuario"]) and (apiDataAsJson["qr_code"]["is_valid"]):
-        	print "Informacoes da compra bateram, validar os dados do is_valid"
-        else:
-        	print "Dados nao bateram, esse QR Code nao e valido"
+        # if (qrCodeAsJSON["data_compra"] == apiDataAsJson["data_compra"]) and (qrCodeAsJSON["usuario"] == apiDataAsJson["usuario"]) and (apiDataAsJson["qr_code"]["is_valid"]):
+        # 	print "Informacoes da compra bateram, validar os dados do is_valid"
+        # else:
+        # 	print "Dados nao bateram, esse QR Code nao e valido"
 
 
 
