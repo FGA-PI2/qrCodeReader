@@ -3,7 +3,7 @@ from sys import argv
 import zbar
 import json
 import requests
-
+quantity = 0
 # create a Processor
 proc = zbar.Processor()
 
@@ -11,18 +11,48 @@ proc = zbar.Processor()
 proc.parse_config('enable')
 
 # initialize the Processor using the default webcam
-device = '/dev/video0'
+device = '/dev/video1'
 if len(argv) > 1:
     device = argv[1]
 proc.init(device)
 
 # setup a callback
+
+def processQRCode(qrcode):
+    ++quantity
+    print("RECEBI OS TREM PARCEIRO!")
+    print "Usuario da compra (QR Code): %s" % qrcode["usuario"]
+    print "Data de compra (QR Code): %s" % qrcode["data_compra"]
+    print "--------------------"
+
+    # checks with the data from compra's API
+
+    data = qrcode["data_compra"]
+    user = qrcode["usuario"]
+    responseFromAPI = requests.get("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user))
+
+    result  = json.loads(responseFromAPI.content)
+    print result[0]
+
+    if (result[0]["qr_code"]["is_valid"] == True):
+        print ("QR Code Valido!")
+        print ("O pedido %s sera feito!" %result[0]["nome"])
+        print (result[0]["qr_code"]["is_valid"])
+        #SEND ALL DATAS TO ELETRONIC HERE
+        result[0]["qr_code"]["is_valid"] = False
+        r = requests.patch("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user), data=result[0])
+
+    else:
+        print ("QR Code Invalido!")
+        print ("Este pedido ja foi retirado!")
+        print (result[0]["qr_code"]["is_valid"])
+
 def my_handler(proc, image, closure):  
     
     #for symbol in image.symbols:
     for symbol in image:
         # do something useful with results
-
+        print "OI"
 		# convert the symbol.data (aka the data extracted from the qr code)	to the string format	
         qrCodeAsString = '"%s"' % symbol.data
         print qrCodeAsString
@@ -31,41 +61,13 @@ def my_handler(proc, image, closure):
         # converts to JSON data
         qrCodeAsJSON = json.loads(qrCodeAsString)
 
-        print qrCodeAsJSON
-        # prints and validates the data 
-        #print "QR Code: %s" % qrCodeAsJSON
-        print "Usuario da compra (QR Code): %s" % qrCodeAsJSON["usuario__id"]
-        print "Data de compra (QR Code): %s" % qrCodeAsJSON["data_compra"]
-        print "--------------------"
+        processQRCode(qrCodeAsJSON)
+       
 
-        # checks with the data from compra's API
-
-        id = 20
-        data = qrCodeAsJSON["data_compra"]
-        user = qrCodeAsJSON["usuario__id"]
-        responseFromAPI = requests.get("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user))
-
-        print responseFromAPI.content
-        result  = json.loads(responseFromAPI.content)
-        print result[0]
-
-        if (result[0]["qr_code"]["is_valid"] == True):
-            print ("QR Code Valido!")
-            print ("O pedido %s sera feito!" %result[0]["nome"])
-            print (result[0]["qr_code"]["is_valid"])
-            #SEND ALL DATAS TO ELETRONIC HERE
-            result[0]["qr_code"]["is_valid"] = False
-            r = requests.patch("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user), data=result[0])
-    
-        else:
-            print ("QR Code Invalido!")
-            print ("Este pedido ja foi retirado!")
-            print (result[0]["qr_code"]["is_valid"])
-
-        print "Usuario da compra (API): %s" % result[0]["usuario"]
-        print "Data de compra (API): %s" % result["data_compra"]
-        print "Is valid? (API): " + str(result["qr_code"]["is_valid"])
-        print "--------------------"
+        # print "Usuario da compra (API): %s" % result[0]["usuario"]
+        # print "Data de compra (API): %s" % result["data_compra"]
+        # print "Is valid? (API): " + str(result["qr_code"]["is_valid"])
+        # print "--------------------"
 
 
 
