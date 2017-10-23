@@ -18,29 +18,46 @@ proc.init(device)
 
 # setup a callback
 
+def update(url,qr_code):
+    headers = {'X-HTTP-Method-Override':'PATCH'}
+    request = requests.put(url,data=qr_code, headers=headers)
+
+    return request
+
 def processQRCode(qrcode):
     ++quantity
     print("RECEBI OS TREM PARCEIRO!")
-    print "Usuario da compra (QR Code): %s" % qrcode["usuario"]
-    print "Data de compra (QR Code): %s" % qrcode["data_compra"]
+    print "Usuario da compra (QR Code): {}".format(qrcode["usuario"])
+    print "Data de compra (QR Code): {}".format(qrcode["data_compra"])
     print "--------------------"
 
     # checks with the data from compra's API
 
     data = qrcode["data_compra"]
     user = qrcode["usuario"]
-    responseFromAPI = requests.get("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user))
+    responseFromAPI = requests.get("http://dev-pi2-api.herokuapp.com/compra/?data_compra={}&usuario__id={}".format(data, user))
 
     result  = json.loads(responseFromAPI.content)
-    print result[0]
-
+    # print result[0]
+    print("Antes do if")
     if (result[0]["qr_code"]["is_valid"] == True):
         print ("QR Code Valido!")
         print ("O pedido %s sera feito!" %result[0]["nome"])
         print (result[0]["qr_code"]["is_valid"])
         #SEND ALL DATAS TO ELETRONIC HERE
         result[0]["qr_code"]["is_valid"] = False
-        r = requests.patch("http://dev-pi2-api.herokuapp.com/compra/?data_compra=%s&usuario__id=%s" %(data, user), data=result[0])
+        url = "http://dev-pi2-api.herokuapp.com/code/{}/".format(result[0]["qr_code"]["id"])
+        qrcode = {
+    "is_valid": False,
+    "qr_code": result[0]["qr_code"]["qr_code"],
+    "usuario": result[0]["qr_code"]["usuario"]
+} 
+        # print qrcode
+        print(url)
+        print("DEpois do print - - TRUE")
+        r = update(url,qrcode)
+        # print(requests.put(url, data=qrcode))
+        print("PUT: ",r)
 
     else:
         print ("QR Code Invalido!")
