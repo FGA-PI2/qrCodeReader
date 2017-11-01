@@ -1,4 +1,5 @@
 #!/usr/bin/python
+
 from sys import argv
 import zbar
 import json
@@ -14,16 +15,22 @@ proc = zbar.Processor()
 proc.parse_config('enable')
 
 # initialize the Processor using the default webcam
-device = '/dev/video1'
+device = '/dev/video0'
 if len(argv) > 1:
     device = argv[1]
 proc.init(device)
 
 # setup a callback
 
-def update(url,data):
-    headers = {'X-HTTP-Method-Override':'PATCH'}
-    request = requests.put(url,data=data, headers=headers)
+def update(url,data,request_type="put"):
+
+    if request_type is "put":
+        headers = {'X-HTTP-Method-Override':'PATCH'}
+        request = requests.put(url,data=data, headers=headers)
+    else:
+        headers = {'X-HTTP-Method-Override':'PATCH'}
+        request = requests.patch(url,data=data, headers=headers)
+
 
     return request
 
@@ -45,24 +52,29 @@ def processQRCode(qrcode):
     if (result[0]["qr_code"]["is_valid"] == True):
 
 
-        bebidas_list = list()
-        for item,index in zip(result[0]['pedido'],len(result[0]['pedido'])):
+        bebida = list()
+        bebida = list()
+        for item,index in zip(result[0]['pedido'],range(0,len(result[0]['pedido'])) ):
 
-            bebida[index] = (
-                requests.get(API_URL+"bebida/{}".format(item['bebida'])).content,
-                item
-            )
+            enough_bebida = list()
 
-            if bebida[index]['remaining_quantity'] < item['volume']:
-                print("Não há {} o suficiente para fazer esta bebida. Entre em contato com o Administrador").format(bebida[index]['nome'])
-                enough_bebida = False
+            tupla = (json.loads(requests.get(API_URL+"bebida/{}".format(item['bebida']['nome'])).content),item)
+
+            bebida.append(tupla)
+            
+
+            print(bebida[index][0]['remaining_quantity'],item['volume'])  
+            if bebida[index][0]['remaining_quantity'] < item['volume']:
+                print("Nao ha {} o suficiente para fazer esta bebida. Entre em contato com o Administrador").format(bebida[index][0]['nome'])
+                enough_bebida.append(False)
 
             else:
-                enough_bebida = True
+                print('volume suficiente')
+                enough_bebida.append(True)
 
 
         #SEND ALL DATAS TO ELETRONIC HERE
-        if enough_bebida is True:
+        if False not in enough_bebida:
 
             list_of_orders = list()
 
@@ -73,7 +85,7 @@ def processQRCode(qrcode):
                     'volume' : item['volume']
                 }
 
-                #Essa lista é o que eletronica deve ler para realizar o pedido
+                #Essa lista e o que eletronica deve ler para realizar o pedido
                 list_of_orders.append(drink_to_make)
 
 
@@ -88,9 +100,14 @@ def processQRCode(qrcode):
             }
 
             update_qr_code_status = update(url,qrcode)
+            print(update_qr_code_status)
 
-            for bebida in bebidas_list:
-                subtract_volume_of_drink = update(API_URL+"bebida/{}/".format(bebida[0]['nome']),{"remaining_quantity":bebida[1]['nome']})
+            for item in bebida:
+                print(item)
+                volume_restante = item[0]['remaining_quantity'] - item[1]['volume']
+                print(volume_restante,"{}".format(item[0]['nome']))
+                subtract_volume_of_drink = update(API_URL+"bebida/{}/".format(item[0]['nome']),{"remaining_quantity":volume_restante},"patch")
+                print(subtract_volume_of_drink.request)
 
     else:
         print ("QR Code Invalido!")
