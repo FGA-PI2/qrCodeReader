@@ -4,7 +4,8 @@ from sys import argv
 import zbar
 import json
 import requests
-
+import operator
+from teste import serialuc32
 
 API_URL = 'http://dev-pi2-api.herokuapp.com/'
 quantity = 0
@@ -78,6 +79,16 @@ def processQRCode(qrcode):
 
             list_of_orders = list()
 
+            drinks = {}
+
+
+            drinks = {
+
+                    1 : 0,
+                    2 : 0,
+                    3 : 0
+            }
+
             for item in result[0]['pedido']:
 
                 drink_to_make = {
@@ -85,8 +96,15 @@ def processQRCode(qrcode):
                     'volume' : item['volume']
                 }
 
+                drinks[drink_to_make['posicao']] = drink_to_make['volume']  
+            
+                
+
+
+
                 #Essa lista e o que eletronica deve ler para realizar o pedido
-                list_of_orders.append(drink_to_make)
+                #list_of_orders.append(drink_to_make["posicao"],drink_to_make['volume']) 
+                
 
 
 
@@ -108,6 +126,24 @@ def processQRCode(qrcode):
                 print(volume_restante,"{}".format(item[0]['nome']))
                 subtract_volume_of_drink = update(API_URL+"bebida/{}/".format(item[0]['nome']),{"remaining_quantity":volume_restante},"patch")
                 print(subtract_volume_of_drink.request)
+
+                      
+                    
+
+            string = ""    
+            for i in drinks.values():
+                string = string+str(i)+" "
+       
+            if(result[0]["gelo"] == True):
+                string = string + "1"
+            else:
+                string = string + "0"
+
+
+            #sorted_x = sorted(drinks.items(), key=operator.itemgetter(0))
+            print(drinks.keys())
+            print(string)
+            serialuc32(string)
 
     else:
         print ("QR Code Invalido!")
