@@ -37,7 +37,6 @@ def update(url,data,request_type="put"):
 
 def processQRCode(qrcode):
     ++quantity
-    print("RECEBI OS TREM PARCEIRO!")
     print "Usuario da compra (QR Code): {}".format(qrcode["usuario"])
     print "Data de compra (QR Code): {}".format(qrcode["data_compra"])
     print "--------------------"
@@ -155,8 +154,7 @@ def my_handler(proc, image, closure):
     #for symbol in image.symbols:
     for symbol in image:
         # do something useful with results
-        print "OI"
-		# convert the symbol.data (aka the data extracted from the qr code)	to the string format
+	# convert the symbol.data (aka the data extracted from the qr code)	to the string format
         qrCodeAsString = '"{}"'.format(symbol.data)
         print qrCodeAsString
         # deletes the first the " punctuation so we can load the text string as JSON data
